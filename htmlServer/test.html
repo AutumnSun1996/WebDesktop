@@ -1,0 +1,264 @@
+<html>
+
+<head>
+    <title>远程控制</title>
+    <script src="/static/jquery-1.12.4.min.js"></script>
+    <script src="/static/jsmpeg.min.js"></script>
+    <script src="/static/wfs.js"></script>
+    <script src="/static/socket.io-2.2.0.min.js"></script>
+    <script src="/static/remoteControl.js"></script>
+    <style>
+        html,
+        body {
+            background: black;
+            margin: 0px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .float {
+            background: #778899;
+            position: absolute;
+            transform-origin: left top;
+        }
+
+        table,
+        tr,
+        td,
+        th {
+            min-width: 30px;
+            min-height: 30px;
+            border: 0;
+            margin: 0;
+            border: 0;
+            padding: 0;
+            border-collapse: collapse;
+        }
+
+        .header {
+            background: #778899;
+            min-height: 60px;
+            text-align: center;
+        }
+
+        canvas {
+            background: #66ccff;
+            margin: 0;
+            cursor: crosshair
+        }
+
+        .title {
+            font-size: 2em;
+        }
+
+        .action {
+            font-size: 1.5em;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .active {
+            background: gray;
+        }
+
+        .border {
+            width: 40px;
+            background: #778899;
+        }
+
+        input,
+        button {
+            width: 100px;
+            vertical-align: middle;
+            text-align: center;
+            margin: auto;
+            padding: 0;
+        }
+
+        #tools {
+            z-index: 100;
+            text-align: center;
+            left: 500px;
+            top: 500px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="tools" class="float">
+        <div class="header">
+            TOOLS
+        </div>
+        <form action="#">
+            <input type="text" name="window" id="windowName" value="FGO1">
+            <br>
+            <input type="submit" value="ADD">
+        </form>
+        <button onclick="resetSocket();">重置socket</button>
+        <br>
+        <button onclick="resetAll();">重置全部画面</button>
+        <br>
+        <button onclick="closeAll();">全部关闭</button>
+        <br>
+        <div class="border-bottom"><br></div>
+    </div>
+    <div id="floatContent"></div>
+    <div id="template" style="display: none">
+        <table class="float">
+            <tbody>
+                <tr>
+                    <td class="video-holder">
+                        <canvas width=1280 height=720></canvas>
+                    </td>
+                    <td class="border right">&nbsp;&nbsp;</td>
+                </tr>
+                <tr>
+                    <td class="header">
+                        <span class="title"></span>&nbsp;&nbsp;
+                        <span class="action reset">重置</span>&nbsp;&nbsp;
+                        <span class="action close">关闭</span>&nbsp;&nbsp;
+                        <span class="action emit">Back</span>&nbsp;&nbsp;
+                        <span class="action emit">Home</span>&nbsp;&nbsp;
+                        <span class="action emit">Menu</span>&nbsp;&nbsp;
+                        <span class="action emit">Clear</span>&nbsp;&nbsp;
+                    </td>
+                    <td class="border bottom">&nbsp;&nbsp;</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        $("#tools").initControl({
+            moveHandler: ".header",
+            resizeHandler: {
+                bottom: ".border.bottom"
+            }
+        });
+
+        var socket = {
+            emit: console.log
+        };
+
+        var initScale = 0.5;
+        if (/Android/.test(navigator.userAgent)) {
+            initScale = 0.6;
+        }
+        function loadVideoMPEG1(table, name) {
+            table.attr("id", "Table-" + name);
+            table.find(".title").text(name);
+            var canvas = table.find(".video-holder").html("<canvas width=1280 height=720></canvas>").find("canvas")[0];
+            var url = location.origin.replace("http", "ws") + '/live/' + name + "_mpeg1";
+            table[0].player = new JSMpeg.Player(url, { canvas: canvas });
+            initMouseEvent(canvas);
+        }
+        function loadVideoH264(table, name) {
+            table.attr("id", "Table-" + name);
+            table.find(".title").text(name);
+            var video = table.find(".video-holder").html("<video></video>").find("video")[0];
+            var url = location.origin.replace("http", "ws") + '/live/' + name;
+            var wfs = new Wfs();
+            wfs.attachMedia(video, url);
+            table[0].player = wfs;
+            initMouseEvent(video);
+        }
+        var loadVideo = loadVideoMPEG1
+
+        $("form").submit(function () {
+            var name = $("#windowName").val();
+            if ($("#Table-" + name).size() > 0) {
+                window.alert(name + " Exists!")
+                return false;
+            }
+            var table = $("#template > table").clone(true);
+            table.css({ transform: "scale(" + initScale + ")" });
+            loadVideo(table, name);
+            table.appendTo("#floatContent");
+            table.initControl({
+                moveHandler: ".header",
+                resizeHandler: {
+                    right: ".border.right",
+                    bottom: ".border.bottom"
+                }
+            })
+            return false;
+        })
+
+        function onAction(evt) {
+            var tbl = $(evt.target).closest("table");
+            var cls = evt.target.classList;
+            if (cls.contains("close")) {
+                tbl[0].player.destroy();
+                tbl.remove();
+            }
+            if (cls.contains("reset")) {
+                tbl[0].player.destroy();
+                loadVideo(tbl, tbl[0].name);
+            }
+            if (cls.contains("emit")) {
+                socket.emit("phone_tool", { name: tbl[0].name, type: evt.target.innerText })
+            }
+            return;
+        }
+
+        $(".action").on("mouseup touchend", onAction);
+        function resetSocket() {
+            try {
+                socket.close();
+            } catch (e) {
+                console.log(e);
+            }
+            socket = io('/action');
+            console.log("resetSocket");
+        }
+        function resetAll() {
+            $("#floatContent .action.reset").each((i, item) => {
+                onAction({ target: item });
+            });
+        }
+        function closeAll() {
+            $("#floatContent .action.close").each((i, item) => {
+                onAction({ target: item });
+            });
+        }
+
+        function parseMouseEvent(evt, obj) {
+            var tbl = $(obj).closest("table");
+            var p;
+            if (/^touch/.test(evt.type)) {
+                var rect = obj.getBoundingClientRect();
+                var pos = evt.originalEvent.changedTouches[0];
+                p = { rx: (pos.pageX - rect.left) / rect.width, ry: (pos.pageY - rect.top) / rect.height };
+            } else {
+                p = { rx: evt.offsetX / $(obj).width(), ry: evt.offsetY / $(obj).height() }
+            }
+            return {
+                pos: p,
+                name: tbl.find(".title").text(),
+                type: evt.type
+            };
+        }
+        function initMouseEvent(canvas) {
+            $(canvas).on("mousedown touchstart", function (evt) {
+                this.mousedown = true;
+                socket.emit("mousedown", parseMouseEvent(evt, this));
+                return false;
+            })
+            $(canvas).on("mousemove touchmove", function (evt) {
+                if (this.mousedown) {
+                    socket.emit("mousemove", parseMouseEvent(evt, this));
+                    return false;
+                }
+            })
+            $(canvas).on("mouseup touchend", function (evt) {
+                this.mousedown = null;
+                socket.emit("mouseup", parseMouseEvent(evt, this));
+                return true;
+            })
+        }
+        $("form").submit();
+    </script>
+</body>
+<script>
