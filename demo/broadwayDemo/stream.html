@@ -1,0 +1,61 @@
+<html>
+
+<head>
+  <link type="text/css" href="screen.css" rel="stylesheet" />
+  <link type="text/css" href="jquery-ui.css" rel="stylesheet" />
+</head>
+
+<body>
+  <script type="text/javascript" src="Decoder.js"></script>
+  <script type="text/javascript" src="YUVCanvas.js"></script>
+  <script type="text/javascript" src="Player.js"></script>
+
+  <script type="text/javascript" src="stream.js"></script>
+
+  <script type="text/javascript" src="mp4.js"></script>
+
+  <!--  <canvas id='canvas' width="640" height="100" style="background-color: #333333;"></canvas>  -->
+  <br>
+  <a style="font-size: 24px; padding: 20px">Broadway.js - H.264 Decoding in JavaScript</a>
+  <br>
+  <table>
+    <tr>
+      <td>Main Thread Decoding</td>
+      <td>Worker Decoding</td>
+      <td>Worker Decoding</td>
+    </tr>
+    <tr>
+      <td>
+        <div class="broadway" src="fgo.h264" width="640" height="360" style="float: left; position: relative;"
+          workers="false" render="true" webgl="auto"></div>
+      </td>
+  </table>
+  <script type="text/javascript">
+    var xhr = new XMLHttpRequest();
+    var async = true;
+    xhr.open("GET", "fgo.h264", async);
+    xhr.responseType = "arraybuffer";
+    xhr.onprogress = function (event) {
+      console.log(xhr.response, event.loaded, event.total);
+    };
+    xhr.onreadystatechange = function (event) {
+      if (xhr.readyState === 4) {
+        
+        // complete(xhr.response);
+        // var byteArray = new Uint8Array(xhr.response);
+        console.log("XMLHttpRequest End", xhr.response)
+        var player = new Decoder({sliceMode: true});
+        player.onPictureDecoded = console.log;
+        // document.body.appendChild(player.canvas);
+        player.decode(xhr.response);
+        // var array = Array.prototype.slice.apply(byteArray);
+        // complete(array);
+      }
+    }
+    console.log("send XMLHttpRequest")
+    xhr.send(null);
+  </script>
+
+</body>
+
+</html>

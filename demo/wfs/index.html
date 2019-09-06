@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>h.264 To fmp4</title>
+
+</head>
+
+<body>
+    <h2>h.264 To fmp4</h2>
+
+
+    <script type="text/javascript" src="wfs.js"></script>
+
+    <div class="wfsjs">
+        <video id="video"></video>
+        <div class="ratio"></div>
+    </div>
+
+    </div>
+
+    <script>
+        var wfs;
+        window.onload = function () {
+            if (Wfs.isSupported()) {
+                var video = document.getElementById("video");
+                wfs = new Wfs();
+                wfs.attachMedia(video, 'ws://localhost:8081/live/FGO1_h264');
+            }
+        };
+
+    </script>
+
+</body>
+
+</html>

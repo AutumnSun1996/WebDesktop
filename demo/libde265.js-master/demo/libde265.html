@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<title>libde265.js</title>
+<style type="text/css">
+body, button {
+    font: 13px Helvetica, arial, freesans, clean, sans-serif;
+}
+a:link {
+    text-decoration: none;
+}
+a:visited {
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+a:active {
+    text-decoration: none;
+}
+a {
+    color: #00a;
+}
+</style>
+<script type="text/javascript" src="../lib/libde265-stream.js"></script>
+<script>
+
+// var VIDEO_URL = "spreedmovie.hevc";
+var VIDEO_URL = "test265.mp4";
+var VIDEO_URL = "ws://localhost:8081/live/任务管理器";
+// var VIDEO_URL = "ws://localhost:8081/live/FGO2";
+
+var player = null;
+
+window.onload = function() {
+    var video = document.getElementById("video");
+    var status = document.getElementById("status");
+
+    var playback = function(event) {
+        event.preventDefault();
+        if (player) {
+            player.stop();
+        }
+
+        console.log("Playing with libde265", libde265.de265_get_version());
+        player = new libde265.RawPlayer(video);
+        player.set_status_callback(function(msg, fps) {
+            player.disable_filters(true);
+            switch (msg) {
+            case "loading":
+                status.innerHTML = "Loading movie...";
+                break;
+            case "initializing":
+                status.innerHTML = "Initializing...";
+                break;
+            case "playing":
+                status.innerHTML = "Playing...";
+                break;
+            case "stopped":
+                status.innerHTML = "";
+                break;
+            case "fps":
+                status.innerHTML = Number(fps).toFixed(2) + " fps";
+                break;
+            default:
+                status.innerHTML = msg;
+            }
+        });
+        player.playback(VIDEO_URL);
+    };
+
+    var button = document.getElementById("play");
+    if (button.addEventListener) {
+        button.addEventListener("click", playback, false);
+    } else if (button.attachEvent){
+        button.attachEvent('onclick', playback);
+    }
+    // playback()
+};
+
+</script>
+<body>
+    <h1>libde265.js</h1>
+    <a href="https://github.com/strukturag/libde265.js">libde265.js</a>
+    <div>
+        <div>Simple HEVC/H.265 bitstream player in pure JavaScript.</div>
+        <div><small>Copyright &copy; 2014 by <a href="http://www.struktur.de">struktur AG</a></small></div>
+        <canvas id="video" width="0" height="0"></canvas>
+    </div>
+    <button id="play">Play</button>
+    <span id="status"></span>
+</body>
+</html>

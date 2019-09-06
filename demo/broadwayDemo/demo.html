@@ -1,0 +1,68 @@
+<html>
+<head>
+  <link type="text/css" href="screen.css" rel="stylesheet" />
+  <link type="text/css" href="jquery-ui.css" rel="stylesheet" />
+</head>
+<body onload="load()">
+  <script type="text/javascript" src="Decoder.js"></script>
+  <script type="text/javascript" src="YUVCanvas.js"></script>
+  <script type="text/javascript" src="Player.js"></script>
+  
+  <script type="text/javascript" src="stream.js"></script>
+  
+  <script type="text/javascript" src="mp4.js"></script>
+  
+  <script type="text/javascript">
+    function load() {
+      var nodes = document.querySelectorAll('div.broadway');
+      for (var i = 0; i < nodes.length; i++) {
+        var broadway = new Broadway(nodes[i]);
+        // broadway.play();
+      }
+    }
+  </script>
+  
+  <!--  <canvas id='canvas' width="640" height="100" style="background-color: #333333;"></canvas>  -->
+  <br>
+  <a style="font-size: 24px; padding: 20px">Broadway.js - H.264 Decoding in JavaScript</a>
+  <br>
+  <table>
+    <tr><td>Main Thread Decoding</td><td>Worker Decoding</td><td>Worker Decoding</td></tr>
+    <tr>
+      <td>
+        <div class="broadway" src="fgo.h264" width="640" height="360" style="float: left; position: relative;" workers="false" render="true" webgl="auto"></div>
+      </td>
+      <td>  
+        <div class="broadway" src="fgo.h264" width="640" height="360" style="float: left; position: relative;" workers="true" webgl="auto"></div>
+      </td>
+      <td>  
+        <div class="broadway" src="fgo.h264" width="640" height="360" style="float: left; position: relative;" workers="true" webgl="auto"></div>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div class="broadway" src="fgo.h264" width="640" height="360" style="float: left; position: relative;" workers="false" render="true" webgl="false"></div>
+      </td>
+      <td>  
+        <div class="broadway" src="fgo.h264" width="640" height="360" style="float: left; position: relative;" workers="true" webgl="false"></div>
+      </td>
+      <td>  
+        <div class="broadway" src="fgo.h264" width="640" height="360" style="float: left; position: relative;" workers="true" webgl="false"></div>
+      </td>
+    </tr>
+    <!--
+    <tr><td></td><td>Worker Thread 1 Decoding without Rendering</td><td>Worker Thread 2 Decoding without Rendering</td></tr>
+    <tr>
+      <td>
+      </td>
+      <td>  
+        <div class="broadway" src="mozilla_story.mp4" width="360" height="280" style="float: left; position: relative;" workers="true" render="false"></div>
+      </td>
+      <td>  
+        <div class="broadway" src="mozilla_story.mp4" width="360" height="280" style="float: left; position: relative;" workers="true" render="false"></div>
+      </td>
+    </tr>
+    -->
+  </table>  
+</body>
+</html>

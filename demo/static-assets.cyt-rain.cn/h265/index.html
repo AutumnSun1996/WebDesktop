@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<title>MP4解封装</title>
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .controls {
+            display: block;
+            width: 100%;
+            text-align: left;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+<style>
+        .container {
+            width: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        #video {
+          background: #000;
+          width: 300px;
+        }
+
+        #input {
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+<canvas id="video" width="0" height="0"></canvas>
+</div>
+<div class="controls">
+<h2>视频</h2>
+<input id="input" value="https://static-assets.cyt-rain.cn/h265/265.mp4" />
+<button onclick="load()">Load</button>
+<button onclick="play()">Play</button>
+<button onclick="pause()">Pause</button>
+<div>
+<h3>测试h265播放地址:</h3>
+<div>https://static-assets.cyt-rain.cn/h265/265.mp4</div>
+<div>http://tbm-auth.alicdn.com/j7yCKTfHz0KY4IMds5L/Jm0ftmWkrI78wwQf9ig@@sd_265_hq.mp4?auth_key=1545455996-0-0-3af1946d30d062a5ba8407c0c0407ca6</div>
+<div>http://tbm-auth.alicdn.com/NKiMpB5wgOTxzJGwhre/ynbjK8jN76WIWIenmFa@@sdregop_265_hq.mp4?auth_key=1545450223-0-0-38d144c9f9d8c78c56327c2a52ab8573</div>
+<div>http://tbm-auth.alicdn.com/hWMsrT7POd4L9xLBRd0/JEUKqz9c0L0ywVkgPzx@@sd_265_hq.mp4?auth_key=1545450405-0-0-cb5d9a7aa8de6e5e9b29966163db8479</div>
+</div>
+</div>
+<script type="text/javascript" src="H265.js"></script></body>
+</html>
