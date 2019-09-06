@@ -60,3 +60,7 @@ target/
 rd
 .vscode
 node_modules
+
+*.mp4
+*.h264
+*.zip
