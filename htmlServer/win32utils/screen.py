@@ -116,6 +116,21 @@ def detect_window_size(hwnd):
     return w, h
 
 @lru_cache(maxsize=32)
+def get_record_bbox(title):
+    dx = config.get_default("offsetX", title, 0)
+    dy = config.get_default("offsetY", title, 0)
+    w = config.get_default("width", title)
+    h = config.get_default("height", title)
+    if w is None:
+        hwnd = get_window_hwnd(title)
+        w = detect_window_size(hwnd)[0] - dx
+    if h is None:
+        hwnd = get_window_hwnd(title)
+        h = detect_window_size(hwnd)[1] - dx
+    return [dx, dy, w, h]
+
+
+@lru_cache(maxsize=32)
 def get_sidebar_hwnd(title):
     hwnd = get_window_hwnd(title)
     cur_tid, cur_pid = win32process.GetWindowThreadProcessId(hwnd)

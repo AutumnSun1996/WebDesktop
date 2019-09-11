@@ -12,9 +12,9 @@ var fs = require('fs'),
 var STREAM_SECRET = process.argv[2] || "stream",
 	STREAM_PORT = process.argv[3] || 8081;
 
-var RECORD = true;
 
 var ffmpegProcess = {};
+var mp4Headers = {};
 
 function startProcess(name) {
 	console.log("Try Start Process", name)
@@ -25,7 +25,7 @@ function startProcess(name) {
 	http.request({
 		host: "localhost",
 		port: 8080,
-		path: "/streamManager/" + name,
+		path: "/streamManager/" + encodeURI(name),
 		method: "PUT"
 	}).on('error', (e) => {
 		console.warn(`开启${name}出现问题: ${e.message}`);
@@ -36,7 +36,7 @@ function stopProcess(name) {
 	http.request({
 		host: "localhost",
 		port: 8080,
-		path: "/streamManager/" + name,
+		path: "/streamManager/" + encodeURI(name),
 		method: "DELETE"
 	}).on('error', (e) => {
 		console.warn(`关闭${name}出现问题: ${e.message}`);
@@ -68,21 +68,30 @@ function updateBitRate(namespace, size) {
 var wsServer = new WebSocket.Server({ perMessageDeflate: false, noServer: true });
 wsServer.connectionCount = {};
 wsServer.on('connection', function (client, upgradeReq) {
-	if (!wsServer.connectionCount[client.namespace]) {
-		wsServer.connectionCount[client.namespace] = 0;
+	var namespace = client.namespace;
+	if (!wsServer.connectionCount[namespace]) {
+		wsServer.connectionCount[namespace] = 0;
 	}
-	startProcess(client.namespace);
-	wsServer.connectionCount[client.namespace]++;
-
+	startProcess(namespace);
+	wsServer.connectionCount[namespace]++;
 
 	upgradeReq = (upgradeReq || client.upgradeReq)
 	console.log(
-		'New WebSocket Connection for ' + client.namespace +
+		'New WebSocket Connection for ' + namespace +
 		' from ' + upgradeReq.socket.remoteAddress,
 		upgradeReq.headers['user-agent'],
 		'(now:' + JSON.stringify(wsServer.connectionCount) + ')'
 	);
 
+	if(/(_mp4|_vp8)$/.test(namespace)){
+		if(!mp4Headers[namespace]){
+			mp4Headers[namespace] = []
+		}
+		console.log(`Send head of ${namespace}, size=${mp4Headers[namespace].length}`)
+		mp4Headers[namespace].forEach((data) => {
+			client.send(data);
+		})
+	}
 	client.on('close', function (code, message) {
 		wsServer.connectionCount[client.namespace]--;
 		console.log(
@@ -123,6 +132,14 @@ var httpServer = http.createServer(function (request, response) {
 	console.log(`Stream ${namespace} connected from ${request.socket.remoteAddress}:${request.socket.remotePort}`);
 	request.on('data', function (data) {
 		wsServer.broadcast(data, namespace);
+		if(/(_mp4|_vp8)$/.test(namespace)){
+			if(!mp4Headers[namespace]){
+				mp4Headers[namespace] = []
+			}
+			if(mp4Headers[namespace].length < 3){
+				mp4Headers[namespace].push(data);
+			}
+		}
 		if (request.socket.recording) {
 			request.socket.recording.write(data);
 		}
@@ -131,12 +148,13 @@ var httpServer = http.createServer(function (request, response) {
 		console.log(`Stream ${namespace} closed`);
 		ffmpegProcess[namespace] = null;
 		bitRateRecords[namespace] = null;
+		mp4Headers[namespace] = null;
 		if (request.socket.recording) {
 			request.socket.recording.close();
 		}
 	});
 	// 录制
-	request.socket.recording = fs.createWriteStream(namespace+".mp4");
+	// request.socket.recording = fs.createWriteStream(namespace+".mp4");
 })
 
 httpServer.on("upgrade", function upgrade(request, socket, head) {

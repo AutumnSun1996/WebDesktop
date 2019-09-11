@@ -6,7 +6,6 @@
     <script src="{{ url_for('static', filename='jsmpeg.min.js') }}"></script>
     <script src="{{ url_for('static', filename='wfs.js') }}"></script>
     <script src="{{ url_for('static', filename='socket.io-2.2.0.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='remoteControl.js') }}"></script>
     <style>
         html,
         body {
@@ -19,6 +18,8 @@
         .float {
             background: #778899;
             position: absolute;
+            left: 0;
+            top: 0;
             transform-origin: left top;
         }
 
@@ -38,6 +39,7 @@
         .header {
             background: #778899;
             min-height: 60px;
+            cursor: move;
             text-align: center;
         }
 
@@ -65,11 +67,9 @@
         }
 
         .border {
-            background: #778899;
-        }
-        .right{
             width: 40px;
-            height: 100%;
+            background: #778899;
+            cursor: e-resize;
         }
 
         input,
@@ -95,30 +95,25 @@
         <div class="header">
             TOOLS
         </div>
-        <div class="collapse">
-            <form action="#">
-                <input type="text" name="window" id="windowName" value="{{name or 'FGO1'}}">
-                <br>
-                <input type="submit" value="ADD">
-            </form>
-            <button onclick="resetSocket();">重置socket</button>
+        <form action="#">
+            <input type="text" name="window" id="windowName" value="{{name or 'FGO1'}}">
             <br>
-            <button onclick="resetAll();">重置全部画面</button>
-            <br>
-            <button onclick="closeAll();">全部关闭</button>
-            <br>
-            <div class="border bottom"><br></div>
-        </div>
+            <input type="submit" value="ADD">
+        </form>
+        <button onclick="resetSocket();">重置socket</button>
+        <br>
+        <button onclick="resetAll();">重置全部画面</button>
+        <br>
+        <button onclick="closeAll();">全部关闭</button>
+        <br>
     </div>
     <div id="floatContent"></div>
     <div id="template" style="display: none">
-        <table class="float">
+        <table class="float" style="left: 0; top: 0;" cellspacing="0" cellpadding="0">
             <tbody>
                 <tr>
-                    <td class="video-holder">
-                        <canvas width=1280 height=720></canvas>
-                    </td>
-                    <td class="border right">&nbsp;&nbsp;</td>
+                    <td class="video-holder"></td>
+                    <td rowspan="2" class="border">&nbsp;&nbsp;</td>
                 </tr>
                 <tr>
                     <td class="header">
@@ -130,51 +125,35 @@
                         <span class="action emit">Menu</span>&nbsp;&nbsp;
                         <span class="action emit">Clear</span>&nbsp;&nbsp;
                     </td>
-                    <td class="border bottom">&nbsp;&nbsp;</td>
                 </tr>
             </tbody>
         </table>
     </div>
     <script>
-        $("#tools").initControl({
-            moveHandler: ".header",
-            resizeHandler: {
-                bottom: ".border.bottom"
-            }
-        });
-
-        var socket = null;
-        resetSocket();
-
-        var initScale = localStorage.getItem("initScale") || 0.5;
-        function updateInitScale(scale) {
-            initScale = scale;
-            localStorage.setItem("initScale", scale);
+        var socket = io('/action');
+        var initScale = 0.5;
+        if (/Android/.test(navigator.userAgent)) {
+            initScale = 0.6;
         }
         function loadVideoMPEG1(table, name) {
-            console.log("loadVideoMPEG1", name)
-            var canvas = table.find(".video-holder").html("<canvas width=1280 height=720></canvas>").find("canvas")[0];
+            table.attr("id", "Table-" + name);
+            table.find(".title").text(name);
+            var canvas = table.find(".video-holder").html("<canvas></canvas>").find("canvas")[0];
             var url = location.origin.replace("http", "ws") + '/live/' + name + "_mpeg1";
             table[0].player = new JSMpeg.Player(url, { canvas: canvas });
             initMouseEvent(canvas);
         }
         function loadVideoH264(table, name) {
-            console.log("loadVideoH264", name)
+            table.attr("id", "Table-" + name);
+            table.find(".title").text(name);
             var video = table.find(".video-holder").html("<video></video>").find("video")[0];
             var url = location.origin.replace("http", "ws") + '/live/' + name;
             var wfs = new Wfs();
             wfs.attachMedia(video, url);
             table[0].player = wfs;
-            // initMouseEvent(video);
+            initMouseEvent(video);
         }
-        function loadVideo(table, name){
-            console.log("loadVideo", name, /_h264$/.test(name))
-            if(/_h264$/.test(name)){
-                loadVideoH264(table, name)
-            } else {
-                loadVideoMPEG1(table, name)
-            }
-        }
+        var loadVideo = loadVideoMPEG1
 
         $("form").submit(function () {
             var name = $("#windowName").val();
@@ -183,19 +162,11 @@
                 return false;
             }
             var table = $("#template > table").clone(true);
-            table.css({ transform: "scale(" + initScale + ")" });
-            table.attr("id", "Table-" + name);
-            table.find(".title").text(name);
+            table[0].scale = initScale;
+            table[0].style.transform = "scale(" + initScale + ")";
+            table[0].name = name;
             loadVideo(table, name);
             table.appendTo("#floatContent");
-            table.initControl({
-                moveHandler: ".header",
-                resizeHandler: {
-                    right: ".border.right",
-                    bottom: ".border.bottom"
-                },
-                onResize: updateInitScale
-            })
             return false;
         })
 
@@ -208,14 +179,13 @@
             }
             if (cls.contains("reset")) {
                 tbl[0].player.destroy();
-                loadVideo(tbl, tbl.find(".title").text());
+                loadVideo(tbl, tbl[0].name);
             }
             if (cls.contains("emit")) {
-                socket.emit("phone_tool", { name: tbl.find(".title").text(), type: evt.target.innerText })
+                socket.emit("phone_tool", { name: tbl[0].name, type: evt.target.innerText })
             }
-            return;
+            return true;
         }
-
         $(".action").on("mouseup touchend", onAction);
         function resetSocket() {
             try {
@@ -241,20 +211,23 @@
             var tbl = $(obj).closest("table");
             var p;
             if (/^touch/.test(evt.type)) {
-                var rect = obj.getBoundingClientRect();
                 var pos = evt.originalEvent.changedTouches[0];
-                p = { rx: (pos.pageX - rect.left) / rect.width, ry: (pos.pageY - rect.top) / rect.height };
+                var offset = $(obj).offset();
+                var scale = tbl[0].scale || 1;
+                p = { x: (pos.pageX - offset.left) / scale, y: (pos.pageY - offset.top) / scale };
             } else {
-                p = { rx: evt.offsetX / $(obj).width(), ry: evt.offsetY / $(obj).height() }
+                p = { x: evt.offsetX, y: evt.offsetY }
             }
             return {
-                pos: p,
-                name: tbl.find(".title").text(),
+                pos: {
+                    rx: p.x / $(obj).width(),
+                    ry: p.y / $(obj).height(),
+                },
+                name: tbl[0].name,
                 type: evt.type
             };
         }
         function initMouseEvent(canvas) {
-            console.log("initMouseEvent for", canvas)
             $(canvas).on("mousedown touchstart", function (evt) {
                 this.mousedown = true;
                 socket.emit("mousedown", parseMouseEvent(evt, this));
@@ -272,7 +245,71 @@
                 return true;
             })
         }
-        $("form").submit();
+        var wrapper = $(".border");
+        var borderWidth = wrapper.width() / 2;
+        var tbl = $("table");
+        wrapper.on("mousedown touchstart", function (evt) {
+            $(this).closest("table")[0].mousedown = true;
+            console.log(evt)
+            return false;
+        })
+        tbl.on("mousemove touchmove mouseup touchend", function (evt) {
+            if (this.mousedown) {
+                if (/^touch/.test(evt.type)) {
+                    evt = evt.originalEvent.changedTouches[0]
+                }
+                var tbl = $(this);
+                var x = evt.pageX - tbl.offset().left;
+                var r = x / (tbl.width() - borderWidth);
+                if (r < 0.2) {
+                    r = 0.2
+                }
+                console.log("rescale", evt.pageX, tbl.offset().left, x, (tbl.width() - borderWidth), r)
+                this.style.transform = "scale(" + r + ")"
+                this.scale = r;
+                // 设置新窗口的默认缩放级别与当前窗口一致
+                initScale = r;
+                return false;
+            }
+        })
+        tbl.on("mouseup touchend", function (evt) {
+            this.mousedown = null;
+            console.log(evt.type)
+            return false;
+        })
+        var header = $(".header")
+        header.on("mousedown touchstart", function (evt) {
+            if (/^touch/.test(evt.type)) {
+                evt = evt.originalEvent.changedTouches[0]
+            }
+            var offset = $(this).closest(".float").offset()
+            this.mousedown = {
+                x: evt.pageX - offset.left,
+                y: evt.pageY - offset.top
+            };
+            console.log(evt);
+            return true;
+        })
+        header.on("mousemove touchmove mouseup touchend", function (evt) {
+            if (this.mousedown) {
+                if (/^touch/.test(evt.type)) {
+                    evt = evt.originalEvent.changedTouches[0]
+                }
+                var style = $(this).closest(".float")[0].style;
+                console.log("Moved", this.mousedown, evt.pageX, evt.pageY)
+                console.log("Dx", parseFloat(style.left), evt.pageX, -this.mousedown.x)
+                var x = evt.pageX - this.mousedown.x;
+                var y = evt.pageY - this.mousedown.y;
+                style.left = x;
+                style.top = y < 0 ? 0 : y;
+                return false;
+            }
+            return true;
+        })
+        header.on("mouseup touchend mouseleave", function (evt) {
+            this.mousedown = null;
+            return true;
+        })
     </script>
 </body>
 <script>

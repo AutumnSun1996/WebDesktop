@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebSocket and MSE demo</title>
+</head>
+
+<body>
+    <video id="livestream" autoplay>
+        Your browser does not support the video tag.
+    </video>
+</body>
+
+<script>
+    // var verbose = false;
+    var verbose = true;
+
+    // set mimetype and codec
+    var mimeType = 'video/mp4; codecs="avc1.42C028"';
+    var ws_url = "ws://localhost:8081/live/FGO2_mp4";
+    var mimeType = 'video/webm; codecs="vp8"';
+    var ws_url = "ws://localhost:8081/live/FGO2_vp8";
+
+    var streamingStarted = false; // is the sourceBuffer updateend callback active nor not
+
+    // create media source instance
+    var ms = new MediaSource();
+
+    // queue for incoming media packets
+    var queue = [];
+
+    var ws; // websocket
+
+    // ** two callbacks ** 
+    // - pushPacket : called when websocket receives data
+    // - loadPacket : called when sourceBuffer is ready for more data
+    // Both operate on a common fifo
+
+    function pushPacket(arr) { // receives ArrayBuffer.  Called when websocket gets more data
+        // first packet ever to arrive: write directly to sourceBuffer
+        // sourceBuffer ready to accept: write directly to SourceBuffer
+        // otherwise insert to fifo
+
+        var view = new Uint8Array(arr);
+        if (verbose) { console.log("got", arr.byteLength, "bytes.  Values=", view[0], view[1], view[2], view[3], view[4]); }
+
+        data = arr;
+        // data = view;
+
+        if (!streamingStarted) {
+            console.log("Streaming started with", view[0], view[1], view[2], view[3], view[4]);
+            sourceBuffer.appendBuffer(data);
+            streamingStarted = true;
+            return;
+        }
+
+        queue.push(data); // add to the end
+        if (verbose) { console.log("queue push:", queue.length); }
+
+        //
+        //if (!sourceBuffer.updating) {
+        //    loadPacket();
+        //}
+
+    }
+
+    function loadPacket() { // called when sourceBuffer is ready for more
+        if (!sourceBuffer.updating) { // really, really ready
+            if (queue.length > 0) {
+
+                inp = queue.shift(); // pop from the beginning
+                if (verbose) { console.log("queue pull:", queue.length); }
+
+                var view = new Uint8Array(inp);
+
+                if (verbose) {
+                    console.log("                        writing buffer with", view[0], view[1], view[2], view[3], view[4]);
+                }
+                sourceBuffer.appendBuffer(inp);
+            }
+            else { // the queue runs empty, so we must force-feed the next packet
+                streamingStarted = false;
+            }
+        }
+        else { // so it was not?
+        }
+    }
+
+
+
+    function opened() { // now the MediaSource object is ready to go
+        sourceBuffer = ms.addSourceBuffer(mimeType);
+        sourceBuffer.addEventListener("updateend", loadPacket);
+
+        // set up the websocket
+        ws = new WebSocket(ws_url);
+        ws.binaryType = "arraybuffer";
+        ws.onmessage = function (event) {
+            pushPacket(event.data);
+        };
+    }
+
+
+    function startup() {
+        // add event listeners
+        // ms.addEventListener('webkitsourceopen',opened,false);
+        // ms.addEventListener('webkitsourceclose',closed,false);
+        console.log("Start up")
+        ms.addEventListener('sourceopen', opened, false);
+        // ms.addEventListener('sourceclose',closed,false);
+
+
+        // get reference to video
+        var livestream = document.getElementById('livestream');
+
+        // set mediasource as source of video
+        livestream.src = window.URL.createObjectURL(ms);
+        console.log(livestream)
+    }
+
+
+    window.onload = function () {
+        startup();
+    }
+
+
+</script>
+
+
+</html>

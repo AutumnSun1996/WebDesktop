@@ -1079,7 +1079,8 @@
           _this.TIMESCALE = 90000;
           _this.timestamp = 0;
           _this.scaleFactor = _this.TIMESCALE / 1000;
-          _this.H264_TIMEBASE = 3000;
+          // _this.H264_TIMEBASE = 3000;
+          _this.H264_TIMEBASE = 1000;
           _this._avcTrack = {
             container: 'video/mp2t', type: 'video', id: 1, sequenceNumber: 0,
             samples: [], len: 0, nbNalu: 0, dropped: 0, count: 0

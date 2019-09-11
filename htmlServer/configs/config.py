@@ -16,7 +16,20 @@ ServerHost = "0.0.0.0"
 ServerPort = 8080
 ServerDebug = False
 
-defaults = {}
+defaults = {
+    "任务管理器": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 1280,
+        "height": 720,
+    },
+    "微信": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "width": 400,
+        "height": 400,
+    },
+}
 for name in ["FGO1", "FGO2", "FGO3", "碧蓝航线"]:
     defaults[name] = {
         "offsetX": 2,
@@ -25,5 +38,5 @@ for name in ["FGO1", "FGO2", "FGO3", "碧蓝航线"]:
         "height": 720,
     }
 
-def get_default(key, name):
-    return defaults.get(name, {}).get(key)
+def get_default(key, name, default=None):
+    return defaults.get(name, {}).get(key, default)

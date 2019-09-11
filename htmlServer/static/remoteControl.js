@@ -11,6 +11,7 @@
             this.defaults = {
                 parent: 'parent',
                 moveHandler: false,
+                resizeTarget: ".video",
                 resizeHandler: {
                     right: null,
                     bottom: null,
@@ -170,7 +171,10 @@
                     } else if (scale > opt.scaleLimit.max) {
                         scale = opt.scaleLimit.max;
                     }
-                    element.css({ transform: "scale(" + scale + ")" });
+                    // var target = element.find(opt.resizeTarget);
+                    element.css({ transform: "scale(" + scale + ")", transformOrigin: "0 0" });
+                    // var r = target[0].getBoundingClientRect();
+                    // target.parent().css({width: r.width, height: r.height})
                     if(opt.onResize){
                         opt.onResize(scale);
                     }

@@ -9,6 +9,8 @@ import win32gui
 import win32con
 import win32ui
 
+from win32utils.screen import get_record_bbox, get_window_hwnd
+
 
 def get_window_shot(hwnd, offset=(None, None), size=(None, None)):
     # 对后台应用程序截图，程序窗口可以被覆盖，但如果最小化后只能截取到标题栏、菜单栏等。
@@ -46,21 +48,28 @@ url_name = unquote(sys.argv[1])
 name = url_name
 if "_" in name:
     name = name.split("_")[0]
-hwnd = win32gui.FindWindow(None, name)
+hwnd = get_window_hwnd(name)
 print("Get hwnd for "+name, hwnd)
 if hwnd == 0:
     sys.exit(1)
-frame = get_window_shot(hwnd, (2, 32), (1280, 720))
-w, h = (1280, 720)
+dx, dy, w, h = get_record_bbox(name)
+if w % 2:
+    w += 1
+if h % 2:
+    h += 1
+frame = get_window_shot(hwnd, (dx, dy), (w, h))
 
 if url_name.endswith("_mpeg1"):
     args = [
         'ffmpeg', '-re',
         '-f', 'rawvideo', '-pix_fmt', 'rgb32',
         '-s', '{}x{}'.format(w, h), '-i', 'pipe:0',
-        '-f', 'mpegts', '-codec:v', 'mpeg1video',
-        '-b:v', '500k',
-        '-r', '24',
+        '-f', 'mpegts', 
+        '-s', '{}x{}'.format(3*w//4, 3*h//4),
+        '-codec:v', 'mpeg1video',
+        '-g', '25',
+        '-r', '25',
+        '-b:v', '800k',
         'http://127.0.0.1:8081/stream/' + quote(url_name)
         # 'tcp://127.0.0.1:9090'
     ]
@@ -70,7 +79,7 @@ elif url_name.endswith("_h264"):
         '-hwaccel', 'cuda',
         '-f', 'rawvideo', '-pix_fmt', 'rgb32',
         '-s', '{}x{}'.format(w, h), '-i', 'pipe:0',
-        '-f', 'h264',
+        '-f', 'rawvideo',
         '-vcodec', 'h264_nvenc',
         '-profile:v', 'main',
         '-g', '25',
@@ -84,13 +93,13 @@ elif url_name.endswith("_h264"):
         # '-preset', 'ultrafast',
         'http://127.0.0.1:8081/stream/' + quote(url_name)
     ]
-else:
+elif url_name.endswith("_mp4"):
     args = [
         'ffmpeg', '-re',
-        '-hwaccel', 'cuda',
+        # '-hwaccel', 'cuda',
         '-f', 'rawvideo', '-pix_fmt', 'rgb32',
         '-s', '{}x{}'.format(w, h), '-i', 'pipe:0',
-        '-f', 'mpegts', '-codec:v', 'hevc_nvenc',
+        '-vcodec', 'libx264',
         '-profile:v', 'main',
         '-g', '25',
         '-r', '25',
@@ -98,10 +107,58 @@ else:
         '-keyint_min', '250',
         '-strict', 'experimental',
         '-pix_fmt', 'yuv420p',
+        '-movflags', '+frag_keyframe+empty_moov+default_base_moof',
+        '-an',
+        '-preset', 'ultrafast',
+        '-f', 'mp4',
+        'http://127.0.0.1:8081/stream/' + quote(url_name)
+    ]
+elif url_name.endswith(("_h265", "_hevc")):
+    args = [
+        'ffmpeg', '-re',
+        '-hwaccel', 'cuda',
+        '-f', 'rawvideo', '-pix_fmt', 'rgb32',
+        '-s', '{}x{}'.format(w, h),
+        '-i', 'pipe:0',
+        '-f', 'rawvideo', '-codec:v', 'hevc_nvenc',
+        '-profile:v', 'main',
+        '-s', '{}x{}'.format(w, h),
+        '-g', '20',
+        '-r', '20',
+        '-b:v', '800k',
+        '-keyint_min', '20',
+        '-strict', 'experimental',
+        '-pix_fmt', 'yuv420p',
+        # '-movflags', 'empty_moov+default_base_moof',
         'http://127.0.0.1:8081/stream/' + quote(url_name)
         # "test265.mp4"
         # 'tcp://127.0.0.1:9090'
     ]
+elif url_name.endswith("_vp8"):
+    args = [
+        'ffmpeg', '-re',
+        '-hwaccel', 'cuda',
+        '-f', 'rawvideo', '-pix_fmt', 'rgb32',
+        '-s', '{}x{}'.format(w, h),
+        '-i', 'pipe:0',
+        '-f', 'webm', 
+        '-codec:v', 'libvpx',
+        '-s', '{}x{}'.format(w, h),
+        '-g', '20',
+        '-r', '20',
+        '-b:v', '800k',
+        '-crf', '10',
+        '-quality', 'realtime',
+        '-speed', '16', 
+        # '-movflags', 'empty_moov+default_base_moof',
+        '-auto-alt-ref', '0',
+        'http://127.0.0.1:8081/stream/' + quote(url_name)
+        # "test265.mp4"
+        # 'tcp://127.0.0.1:9090'
+    ]
+    
+else:
+    exit(2)
 
 print(" ".join(args))
 # process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
