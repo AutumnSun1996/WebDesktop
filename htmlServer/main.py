@@ -32,10 +32,10 @@ def main():
     vals = request.args.to_dict()
     return render_template("index.html", **vals)
 
-@app.route("/test")
-def test():
-    vals = request.args.to_dict()
-    return render_template("test.html", **vals)
+# @app.route("/test")
+# def test():
+#     vals = request.args.to_dict()
+#     return render_template("test.html", **vals)
 
 
 @app.route("/streamManager/<name>", methods=["GET", "PUT", "DELETE"])
