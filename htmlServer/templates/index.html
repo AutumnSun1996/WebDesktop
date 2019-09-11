@@ -184,7 +184,7 @@
                 return false;
             }
             var table = $("#template > table").clone(true);
-            table.find(".video").css({ transform: "scale(" + initScale + ")" });
+            table.css({ transform: "scale(" + initScale + ")" });
             table.attr("id", "Table-" + name);
             table.find(".title").text(name);
             loadVideo(table, name);
@@ -243,8 +243,16 @@
             var p;
             if (/^touch/.test(evt.type)) {
                 var rect = obj.getBoundingClientRect();
+                var offset = tbl.offset();
                 var pos = evt.originalEvent.changedTouches[0];
-                p = { rx: (pos.pageX - rect.left) / rect.width, ry: (pos.pageY - rect.top) / rect.height };
+                p = {
+                    rx: (pos.pageX - offset.left) / rect.width, 
+                    ry: (pos.pageY - offset.top) / rect.height,
+                    // pageX: pos.pageX,
+                    // pageY: pos.pageY,
+                    // rect: rect,
+                    // offset: offset,
+                };
             } else {
                 p = { rx: evt.offsetX / $(obj).width(), ry: evt.offsetY / $(obj).height() }
             }
