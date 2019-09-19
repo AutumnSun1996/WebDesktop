@@ -65,6 +65,22 @@ if url_name.endswith("_mpeg1"):
         '-f', 'rawvideo', '-pix_fmt', 'rgb32',
         '-s', '{}x{}'.format(w, h), '-i', 'pipe:0',
         '-f', 'mpegts', 
+        '-s', '{}x{}'.format(w, h),
+        # '-s', '{}x{}'.format(3*w//4, 3*h//4),
+        '-codec:v', 'mpeg1video',
+        '-g', '25',
+        '-r', '25',
+        '-b:v', '1600k',
+        'http://127.0.0.1:8081/stream/' + quote(url_name)
+        # 'tcp://127.0.0.1:9090'
+    ]
+elif url_name.endswith("_SmallMpeg1"):
+    args = [
+        'ffmpeg', '-re',
+        '-f', 'rawvideo', '-pix_fmt', 'rgb32',
+        '-s', '{}x{}'.format(w, h), '-i', 'pipe:0',
+        '-f', 'mpegts', 
+        # '-s', '{}x{}'.format(w, h),
         '-s', '{}x{}'.format(3*w//4, 3*h//4),
         '-codec:v', 'mpeg1video',
         '-g', '25',
@@ -156,7 +172,6 @@ elif url_name.endswith("_vp8"):
         # "test265.mp4"
         # 'tcp://127.0.0.1:9090'
     ]
-    
 else:
     exit(2)
 
