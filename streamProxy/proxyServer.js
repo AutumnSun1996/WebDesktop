@@ -7,7 +7,21 @@
 var fs = require('fs'),
 	http = require('http'),
 	WebSocket = require('ws'),
-	url = require('url');
+	url = require('url'),
+	log4js = require('log4js');
+
+log4js.configure({
+	appenders: {
+		console: {//记录器1:输出到控制台
+			type: 'console',
+		},
+	},
+	categories: {
+		default: { appenders: ['console'], level: 'debug' }, //开发环境  输出到控制台
+		console: { appenders: ['console'], level: 'debug' }, //开发环境  输出到控制台
+	}
+})
+var logger = log4js.getLogger("main");
 
 var STREAM_SECRET = process.argv[2] || "stream",
 	STREAM_PORT = process.argv[3] || 8081;
@@ -17,9 +31,9 @@ var ffmpegProcess = {};
 var mp4Headers = {};
 
 function startProcess(name) {
-	console.log("Try Start Process", name)
+	logger.info("Try Start Process", name)
 	if (ffmpegProcess[name]) {
-		console.log("Process exists:", name)
+		logger.info("Process exists:", name)
 		// return
 	}
 	http.request({
@@ -28,18 +42,18 @@ function startProcess(name) {
 		path: "/streamManager/" + encodeURI(name),
 		method: "PUT"
 	}).on('error', (e) => {
-		console.warn(`开启${name}出现问题: ${e.message}`);
+		logger.warn(`开启${name}出现问题: ${e.message}`);
 	}).end()
 }
 function stopProcess(name) {
-	console.log("Try Stop Process", name)
+	logger.info("Try Stop Process", name)
 	http.request({
 		host: "localhost",
 		port: 8080,
 		path: "/streamManager/" + encodeURI(name),
 		method: "DELETE"
 	}).on('error', (e) => {
-		console.warn(`关闭${name}出现问题: ${e.message}`);
+		logger.warn(`关闭${name}出现问题: ${e.message}`);
 	}).end()
 }
 
@@ -59,7 +73,7 @@ function updateBitRate(namespace, size) {
 	if (dt > 5000) {
 		var br = rec.TotalSize / (now - rec.InitTimestamp);
 		br = Number(br).toFixed(3);
-		console.log(`Stream bandwidth of ${namespace} = ${br} KB/s`)
+		logger.info(`Stream bandwidth of ${namespace} = ${br} KB/s`)
 		rec.LastReport = now;
 	}
 }
@@ -76,25 +90,25 @@ wsServer.on('connection', function (client, upgradeReq) {
 	wsServer.connectionCount[namespace]++;
 
 	upgradeReq = (upgradeReq || client.upgradeReq)
-	console.log(
+	logger.info(
 		'New WebSocket Connection for ' + namespace +
 		' from ' + upgradeReq.socket.remoteAddress,
 		upgradeReq.headers['user-agent'],
 		'(now:' + JSON.stringify(wsServer.connectionCount) + ')'
 	);
 
-	if(/(_mp4|_vp8)$/.test(namespace)){
-		if(!mp4Headers[namespace]){
+	if (/(_mp4|_vp8)$/.test(namespace)) {
+		if (!mp4Headers[namespace]) {
 			mp4Headers[namespace] = []
 		}
-		console.log(`Send head of ${namespace}, size=${mp4Headers[namespace].length}`)
+		logger.info(`Send head of ${namespace}, size=${mp4Headers[namespace].length}`)
 		mp4Headers[namespace].forEach((data) => {
 			client.send(data);
 		})
 	}
 	client.on('close', function (code, message) {
 		wsServer.connectionCount[client.namespace]--;
-		console.log(
+		logger.info(
 			'Disconnected WebSocket (now:' + JSON.stringify(wsServer.connectionCount) + ')'
 		);
 
@@ -123,20 +137,20 @@ var httpServer = http.createServer(function (request, response) {
 	const pathname = url.parse(request.url).pathname;
 	var namespace = decodeURI(pathname.split("/")[2]);
 	if (pathname.split("/")[1] !== STREAM_SECRET) {
-		console.log(`Stream connection failed for ${pathname} from ${request.socket.remoteAddress}:${request.socket.remotePort}`);
+		logger.info(`Stream connection failed for ${pathname} from ${request.socket.remoteAddress}:${request.socket.remotePort}`);
 		response.end();
 	}
 
 	response.connection.setTimeout(0);
 	ffmpegProcess[namespace] = true;
-	console.log(`Stream ${namespace} connected from ${request.socket.remoteAddress}:${request.socket.remotePort}`);
+	logger.info(`Stream ${namespace} connected from ${request.socket.remoteAddress}:${request.socket.remotePort}`);
 	request.on('data', function (data) {
 		wsServer.broadcast(data, namespace);
-		if(/(_mp4|_vp8)$/.test(namespace)){
-			if(!mp4Headers[namespace]){
+		if (/(_mp4|_vp8)$/.test(namespace)) {
+			if (!mp4Headers[namespace]) {
 				mp4Headers[namespace] = []
 			}
-			if(mp4Headers[namespace].length < 3){
+			if (mp4Headers[namespace].length < 3) {
 				mp4Headers[namespace].push(data);
 			}
 		}
@@ -145,7 +159,7 @@ var httpServer = http.createServer(function (request, response) {
 		}
 	});
 	request.on('end', function () {
-		console.log(`Stream ${namespace} closed`);
+		logger.info(`Stream ${namespace} closed`);
 		ffmpegProcess[namespace] = null;
 		bitRateRecords[namespace] = null;
 		mp4Headers[namespace] = null;
@@ -162,12 +176,12 @@ httpServer.on("upgrade", function upgrade(request, socket, head) {
 	wsServer.handleUpgrade(request, socket, head, function done(ws) {
 		ws.pathname = pathname
 		ws.namespace = decodeURI(pathname.split("/")[2])
-		console.log("On Upgrade", ws.namespace)
+		logger.info("On Upgrade", ws.namespace)
 		wsServer.emit('connection', ws, request);
 	})
 })
 
 httpServer.listen(STREAM_PORT);
 
-console.log('Listening for incoming Streams on http://127.0.0.1:' + STREAM_PORT + '/' + STREAM_SECRET);
-// console.log('Awaiting WebSocket connections on ws://127.0.0.1:'+WEBSOCKET_PORT+'/');
+logger.info('Listening for incoming Streams on http://127.0.0.1:' + STREAM_PORT + '/' + STREAM_SECRET);
+// logger.info('Awaiting WebSocket connections on ws://127.0.0.1:'+WEBSOCKET_PORT+'/');
