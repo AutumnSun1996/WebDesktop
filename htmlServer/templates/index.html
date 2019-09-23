@@ -166,7 +166,7 @@
             var wfs = new Wfs();
             wfs.attachMedia(video, url);
             table[0].player = wfs;
-            // initMouseEvent(video);
+            initMouseEvent(video);
         }
         function loadVideo(table, name){
             console.log("loadVideo", name, /_h264$/.test(name))
@@ -267,17 +267,20 @@
             $(canvas).on("mousedown touchstart", function (evt) {
                 this.mousedown = true;
                 socket.emit("mousedown", parseMouseEvent(evt, this));
+                console.log("mousedown");
                 return false;
             })
             $(canvas).on("mousemove touchmove", function (evt) {
                 if (this.mousedown) {
                     socket.emit("mousemove", parseMouseEvent(evt, this));
+                    console.log("mousemove");
                     return false;
                 }
             })
             $(canvas).on("mouseup touchend", function (evt) {
                 this.mousedown = null;
                 socket.emit("mouseup", parseMouseEvent(evt, this));
+                console.log("mouseup");
                 return true;
             })
         }
