@@ -59,6 +59,7 @@ if h % 2:
     h += 1
 frame = get_window_shot(hwnd, (dx, dy), (w, h))
 
+interval = 1 / 25
 if url_name.endswith("_mpeg1"):
     args = [
         'ffmpeg', '-re',
@@ -179,13 +180,19 @@ print(" ".join(args))
 # process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 process = subprocess.Popen(args, stdin=subprocess.PIPE, )
 print('{"ExtraPid": %d}' % process.pid, flush=True)
+last_time = time.time()
 while True:
     try:
         frame = get_window_shot(hwnd, (2, 32), (1280, 720))
         # data = frame.astype("uint8").tobytes()
         process.stdin.write(frame)
         process.stdin.flush()
-        time.sleep(1/60)
+        cur_time = time.time()
+        left = interval - (cur_time - last_time)
+        if left > 0:
+            # print("wait", interval, left)
+            time.sleep(left/2)
+        last_time = cur_time
     except KeyboardInterrupt:
         print('KeyboardInterrupt', flush=True)
         break
