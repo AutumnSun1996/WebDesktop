@@ -13,9 +13,9 @@ from win32utils.screen import get_window_hwnd, mousedown, mousemove, mouseup, ph
 
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/RemoteDroid/static")
 app.config['SECRET_KEY'] = 'TestSecretKey'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", path="/RemoteDroid/socket.io")
 
 captures = {}
 
@@ -27,18 +27,18 @@ def after_request(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
-@app.route("/")
+@app.route("/RemoteDroid/")
 def main():
     vals = request.args.to_dict()
     return render_template("index.html", **vals)
 
-@app.route("/test")
+@app.route("/RemoteDroid/test")
 def test():
     vals = request.args.to_dict()
     return render_template("test.html", **vals)
 
 
-@app.route("/streamManager/<name>", methods=["GET", "PUT", "DELETE"])
+@app.route("/RemoteDroid/streamManager/<name>", methods=["GET", "PUT", "DELETE"])
 def ffmpeg_manager(name):
     """管理ffmpeg进程"""
     if request.method == "PUT":
@@ -46,7 +46,7 @@ def ffmpeg_manager(name):
         if name in captures and captures[name].poll() is None:
             logger.info("Current captures: %s", captures)
             return "exists", 200
-        cmd = "..\\rd\\Scripts\\python.exe stream.py {}".format(name)
+        cmd = "python stream.py {}".format(name)
         captures[name] = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.info("Start %s", cmd)
         logger.info("Current captures: %s", captures)

@@ -39,7 +39,7 @@ function startProcess(name) {
 	http.request({
 		host: "localhost",
 		port: 8080,
-		path: "/streamManager/" + encodeURI(name),
+		path: "/RemoteDroid/streamManager/" + encodeURI(name),
 		method: "PUT"
 	}).on('error', (e) => {
 		logger.warn(`开启${name}出现问题: ${e.message}`);
@@ -50,7 +50,7 @@ function stopProcess(name) {
 	http.request({
 		host: "localhost",
 		port: 8080,
-		path: "/streamManager/" + encodeURI(name),
+		path: "/RemoteDroid/streamManager/" + encodeURI(name),
 		method: "DELETE"
 	}).on('error', (e) => {
 		logger.warn(`关闭${name}出现问题: ${e.message}`);

@@ -97,7 +97,7 @@
         </div>
         <div class="collapse">
             <form action="#">
-                <input type="text" name="window" id="windowName" value="{{name or 'FGO1'}}">
+                <input type="text" name="window" id="windowName" value="{{name or 'FGO'}}">
                 <br>
                 <input type="submit" value="ADD">
             </form>
@@ -224,7 +224,7 @@
             } catch (e) {
                 console.log(e);
             }
-            socket = io('/action');
+            socket = io.connect('/action', {'path': "/RemoteDroid/socket.io"});
             console.log("resetSocket");
         }
         function resetAll() {
