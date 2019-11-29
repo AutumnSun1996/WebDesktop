@@ -1,4 +1,4 @@
-# WebSesktop
+# WebDesktop
 Remote desktop with any browser as the client.
 
 Only work in windows(use pywin32 for capturing).
