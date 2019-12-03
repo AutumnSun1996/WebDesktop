@@ -45,9 +45,9 @@ def get_window_shot(hwnd, offset=(None, None), size=(None, None)):
 
 t0 = time.time()
 url_name = unquote(sys.argv[1])
-name = url_name
-if "_" in name:
-    name = name.split("_")[0]
+video_type, name = url_name.split("_", 2)
+video_type = video_type.lower()
+
 hwnd = get_window_hwnd(name)
 print("Get hwnd for "+name, hwnd)
 if hwnd == 0:
@@ -60,7 +60,7 @@ if h % 2:
 frame = get_window_shot(hwnd, (dx, dy), (w, h))
 
 interval = 1 / 25
-if url_name.endswith("_mpeg1"):
+if video_type == "mpeg1":
     args = [
         'ffmpeg', '-re',
         '-f', 'rawvideo', '-pix_fmt', 'rgb32',
@@ -75,7 +75,7 @@ if url_name.endswith("_mpeg1"):
         'http://127.0.0.1:8081/stream/' + quote(url_name)
         # 'tcp://127.0.0.1:9090'
     ]
-elif url_name.endswith("_SmallMpeg1"):
+elif video_type == "smallmpeg1":
     args = [
         'ffmpeg', '-re',
         '-f', 'rawvideo', '-pix_fmt', 'rgb32',
@@ -90,7 +90,7 @@ elif url_name.endswith("_SmallMpeg1"):
         'http://127.0.0.1:8081/stream/' + quote(url_name)
         # 'tcp://127.0.0.1:9090'
     ]
-elif url_name.endswith("_h264"):
+elif video_type == "h264":
     args = [
         'ffmpeg', '-re',
         '-hwaccel', 'cuda',
@@ -110,7 +110,7 @@ elif url_name.endswith("_h264"):
         # '-preset', 'ultrafast',
         'http://127.0.0.1:8081/stream/' + quote(url_name)
     ]
-elif url_name.endswith("_mp4"):
+elif video_type == "mp4":
     args = [
         'ffmpeg', '-re',
         # '-hwaccel', 'cuda',
@@ -130,7 +130,7 @@ elif url_name.endswith("_mp4"):
         '-f', 'mp4',
         'http://127.0.0.1:8081/stream/' + quote(url_name)
     ]
-elif url_name.endswith(("_h265", "_hevc")):
+elif video_type in ("h265", "hevc"):
     args = [
         'ffmpeg', '-re',
         '-hwaccel', 'cuda',
@@ -151,7 +151,7 @@ elif url_name.endswith(("_h265", "_hevc")):
         # "test265.mp4"
         # 'tcp://127.0.0.1:9090'
     ]
-elif url_name.endswith("_vp8"):
+elif video_type == "vp8":
     args = [
         'ffmpeg', '-re',
         '-hwaccel', 'cuda',

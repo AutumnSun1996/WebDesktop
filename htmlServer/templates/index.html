@@ -41,10 +41,10 @@
             text-align: center;
         }
 
-        canvas {
+        canvas, video {
             background: #66ccff;
             margin: 0;
-            cursor: crosshair
+            cursor: crosshair;
         }
 
         .title {
@@ -72,8 +72,7 @@
             height: 100%;
         }
 
-        input,
-        button {
+        .tool {
             width: 100px;
             vertical-align: middle;
             text-align: center;
@@ -97,15 +96,21 @@
         </div>
         <div class="collapse">
             <form action="#">
-                <input type="text" name="window" id="windowName" value="{{name or 'FGO'}}">
+                <input class="tool" type="text" name="window" id="windowName" value="{{name or 'FGO'}}">
                 <br>
-                <input type="submit" value="ADD">
+                <select class="tool" name="type" id="videoType">
+                    <option value="mpeg1">mpeg1 - 1600k</option>
+                    <option value="SmallMpeg1">mpeg1 - 800k</option>
+                    <option value="h264">h264 - 800k, 有延迟</option>
+                </select>
+                <br>
+                <input class="tool" type="submit" value="ADD">
             </form>
-            <button onclick="resetSocket();">重置socket</button>
+            <button class="tool" onclick="resetSocket();">重置socket</button>
             <br>
-            <button onclick="resetAll();">重置全部画面</button>
+            <button class="tool" onclick="resetAll();">重置全部画面</button>
             <br>
-            <button onclick="closeAll();">全部关闭</button>
+            <button class="tool" onclick="closeAll();">全部关闭</button>
             <br>
             <div class="border bottom"><br></div>
         </div>
@@ -122,7 +127,8 @@
                 </tr>
                 <tr>
                     <td class="header">
-                        <span class="title"></span>&nbsp;&nbsp;
+                        <span class="title"></span>/
+                        <span class="type"></span>&nbsp;&nbsp;
                         <span class="action reset">重置</span>&nbsp;&nbsp;
                         <span class="action close">关闭</span>&nbsp;&nbsp;
                         <span class="action emit">Back</span>&nbsp;&nbsp;
@@ -152,48 +158,52 @@
             initScale = scale;
             localStorage.setItem("initScale", scale);
         }
-        function loadVideoMPEG1(table, name) {
+        function loadVideoMPEG1(table, name, type) {
             console.log("loadVideoMPEG1", name)
             var canvas = table.find(".video-holder").html("<canvas class=video width=1280 height=720></canvas>").find("canvas")[0];
-            var url = location.origin.replace("http", "ws") + '/live/' + name + "_mpeg1";
+            var url = location.origin.replace("http", "ws") + `/live/${type}_${name}`;
             table[0].player = new JSMpeg.Player(url, { canvas: canvas });
             initMouseEvent(canvas);
         }
-        function loadVideoH264(table, name) {
+        function loadVideoH264(table, name, type) {
             console.log("loadVideoH264", name)
             var video = table.find(".video-holder").html("<video class=video></video>").find("video")[0];
-            var url = location.origin.replace("http", "ws") + '/live/' + name;
+            var url = location.origin.replace("http", "ws") + `/live/${type}_${name}`;
             var wfs = new Wfs();
             wfs.attachMedia(video, url);
             table[0].player = wfs;
             initMouseEvent(video);
         }
-        function loadVideo(table, name){
-            console.log("loadVideo", name, /_h264$/.test(name))
-            if(/_h264$/.test(name)){
-                loadVideoH264(table, name)
+        function loadVideo(table, name, type){
+            console.log("loadVideo", name, type)
+            if(type === "h264"){
+                loadVideoH264(table, name, type)
             } else {
-                loadVideoMPEG1(table, name)
+                loadVideoMPEG1(table, name, type)
             }
         }
 
         $("form").submit(function () {
             var name = $("#windowName").val();
-            if ($("#Table-" + name).size() > 0) {
+            var type = $("#videoType").val();
+            var typeName = $("#videoType").find("option:selected").text();
+            var targetId = `#Table-${name}-${type}`;
+            if ($(targetId).size() > 0) {
                 window.alert(name + " Exists!")
                 return false;
             }
             var table = $("#template > table").clone(true);
             table.css({ transform: "scale(" + initScale + ")" });
-            table.attr("id", "Table-" + name);
+            table.attr("id", targetId);
             table.find(".title").text(name);
-            loadVideo(table, name);
+            table.find(".type").text(typeName);
+            loadVideo(table, name, type);
             table.appendTo("#floatContent");
             table.initControl({
                 moveHandler: ".header",
                 resizeHandler: {
                     right: ".border.right",
-                    bottom: ".border.bottom"
+                    bottom: ".border.bottom",
                 },
                 onResize: updateInitScale
             })
@@ -224,7 +234,10 @@
             } catch (e) {
                 console.log(e);
             }
-            socket = io.connect('/action', {'path': "/RemoteDroid/socket.io"});
+            socket = io.connect('/action', {
+                'path': "/RemoteDroid/socket.io",
+                // 'transports': ['websocket', 'polling'],
+            });
             console.log("resetSocket");
         }
         function resetAll() {
