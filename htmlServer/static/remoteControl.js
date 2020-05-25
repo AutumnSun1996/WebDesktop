@@ -20,15 +20,17 @@
                     minX: false,
                     minY: true,
                     maxX: true,
-                    maxY: false
+                    maxY: false,
                 },
                 moveAxis: {
                     x: true,
                     y: true,
                 },
-                scaleLimit: {
-                    min: 0.2,
-                    max: 5,
+                sizeLimit: {
+                    minX: 320,
+                    minY: 180,
+                    maxX: 1920,
+                    maxY: 1080,
                 },
                 onResize: function (scale){}
             },
@@ -69,6 +71,15 @@
             $(window).resize(function () {
                 initSize();
             });
+            
+            if(opt.init){
+                var target = opt.resizeTarget ? element.find(opt.resizeTarget) : element;
+                console.log("InitSize", target, opt.init);
+                target.css(opt.init);
+                if(opt.onResize){
+                    opt.onResize(opt.init);
+                }
+            }
 
             function moveStart(e) {
                 console.log("Drag start", e)
@@ -156,27 +167,28 @@
                     }
                 } else if (isResize) {
                     rect = element[0].getBoundingClientRect();
-                    // console.log("Resize", e)
+                    console.log("Resize", e)
                     if (isResize === "right") {
-                        scale = (e.pageX - rect.x) / (element.width() - border);
+                        width = e.pageX - rect.x;
+                        width = Math.max(width, opt.sizeLimit.minX);
+                        width = Math.min(width, opt.sizeLimit.maxX);
+                        height = width * 720 / 1280;
                         // console.log(`scale = ${e.pageX} - ${rect.x} / (${element.width()} - ${border}) = ${scale}`)
                     } else {
-                        scale = (e.pageY - rect.y) / (element.height() - border);
+                        height = e.pageY - rect.y;
+                        height = Math.max(height, opt.sizeLimit.minY);
+                        height = Math.min(height, opt.sizeLimit.maxY);
+                        width = height * 1280 / 720;
                         // console.log(`scale = ${e.pageY} - ${rect.y} / (${element.height()} - ${border}) = ${scale}`)
                     }
-
-                    // console.log("Scale", scale);
-                    if (scale < opt.scaleLimit.min) {
-                        scale = opt.scaleLimit.min;
-                    } else if (scale > opt.scaleLimit.max) {
-                        scale = opt.scaleLimit.max;
-                    }
-                    // var target = element.find(opt.resizeTarget);
-                    element.css({ transform: "scale(" + scale + ")", transformOrigin: "0 0" });
+                    var newcss = { width: width, height: height };
+                    var target = opt.resizeTarget ? element.find(opt.resizeTarget) : element;
+                    console.log("Resize", target, newcss);
+                    target.css(newcss);
                     // var r = target[0].getBoundingClientRect();
                     // target.parent().css({width: r.width, height: r.height})
                     if(opt.onResize){
-                        opt.onResize(scale);
+                        opt.onResize(newcss);
                     }
                 }
             }
