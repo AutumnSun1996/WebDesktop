@@ -92,13 +92,13 @@ def get_window_shot(hwnd, offset=(None, None), size=(None, None)):
     win32gui.ReleaseDC(hwnd, hwndDC)
     return image_data
 
-@lru_cache(maxsize=32)
+# @lru_cache(maxsize=32)
 def get_window_hwnd(title):
     hwnd = win32gui.FindWindow(None, title)
     logger.info("Get hwnd=%s for name=%s", hwnd, title)
     return hwnd
 
-@lru_cache(maxsize=32)
+# @lru_cache(maxsize=32)
 def get_window_size(title):
     hwnd = get_window_hwnd(title)    
     return detect_window_size(hwnd)
@@ -115,7 +115,7 @@ def detect_window_size(hwnd):
         h = int(h * dpi / 96)
     return w, h
 
-@lru_cache(maxsize=32)
+# @lru_cache(maxsize=32)
 def get_record_bbox(title):
     dx = config.get_default("offsetX", title, 0)
     dy = config.get_default("offsetY", title, 0)
@@ -130,7 +130,7 @@ def get_record_bbox(title):
     return [dx, dy, w, h]
 
 
-@lru_cache(maxsize=32)
+# @lru_cache(maxsize=32)
 def get_sidebar_hwnd(title):
     hwnd = get_window_hwnd(title)
     cur_tid, cur_pid = win32process.GetWindowThreadProcessId(hwnd)
@@ -139,12 +139,13 @@ def get_sidebar_hwnd(title):
         tid, pid = win32process.GetWindowThreadProcessId(hwnd)
         if pid != info["pid"]:
             return True
-        text = win32gui.GetWindowText(hwnd)
-        if text != "通过键盘调节GPS方位和移动速度":
+        cls_str = win32gui.GetClassName(hwnd)
+        # text = win32gui.GetWindowText(hwnd)
+        if cls_str != "Qt5QWindowToolSaveBits":
             return True
         rect = win32gui.GetWindowRect(hwnd)
         size = (rect[2]-rect[0], rect[3]-rect[1])
-        if size != (40,754):
+        if size != (40, 754):
             return True
         info["found"] = hwnd
         return False

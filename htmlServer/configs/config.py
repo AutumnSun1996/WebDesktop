@@ -30,7 +30,7 @@ defaults = {
         "height": 400,
     },
 }
-for name in ["FGO", "FGO1", "FGO2", "FGO3", "碧蓝航线"]:
+for name in ["FGO", "FGO1", "FGO2", "FGO3", "碧蓝航线", "倩女幽魂"]:
     defaults[name] = {
         "offsetX": 2,
         "offsetY": 32,
